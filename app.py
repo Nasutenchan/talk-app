@@ -50,7 +50,7 @@ def get_openai_response(user_id, user_message):
     try:
         # OpenAIのAPIリクエストを作成する際にメモリの内容を使用
         response = openai.ChatCompletion.create(
-            model="gpt-4",  # 最新モデルを使用
+            model="gpt-4o",  # 最新モデルを使用
             messages=[
                 {"role": "system", "content": "あなたは落ち着いていて、親切な女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で行ってください。"},
             ] + user_memory[user_id],  # システムメッセージの後にメモリを追加
