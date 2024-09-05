@@ -37,8 +37,7 @@ def get_openai_response(user_id, user_message):
             model="gpt-4o-mini-2024-07-18",  # 利用可能なモデル名に変更
             messages=[
                 {"role": "system", "content": "あなたの名前は「すみれ」です。あなたは落ち着いていて、親切で、かわいい20代の女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で、丁寧な言葉遣いではなく、ため口で話してください。"},
-            ] + user_memory[user_id],  # システムメッセージの後にメモリを追加
-            max_tokens=50  # 応答の長さを増やして約50トークンに制限
+            ] + user_memory[user_id]  # システムメッセージの後にメモリを追加
         )
 
         # OpenAIの応答をメモリに追加
