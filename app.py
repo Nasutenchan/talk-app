@@ -98,10 +98,11 @@ def handle_message(event):
             TextSendMessage(text=farewell_message)
         )
     else:
-        # その他のメッセージには特別な処理をしない（オプションで他の応答を追加可能）
+        # その他のメッセージに対しても応答を生成
+        general_response = get_openai_response(user_id, user_message)
         line_bot_api.reply_message(
             event.reply_token,
-            TextSendMessage(text="ごめんね、今はやっほーとまたねだけに応答するよ！")
+            TextSendMessage(text=general_response)
         )
 
 if __name__ == "__main__":
