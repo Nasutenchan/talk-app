@@ -5,7 +5,6 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
 import os
 import random
-import time
 import ast  # テキストファイルから辞書をインポートするために使用
 
 # 環境変数からトークンを取得
@@ -84,7 +83,6 @@ def get_openai_response(user_id, user_message):
         print(f"予期しないエラーが発生しました: {e}")
         return "申し訳ありませんが、エラーが発生しました。"
 
-
 def pick_random_question():
     """q1からq200のランダムな質問を選ぶ"""
     random_key = random.choice(list(questions_dict.keys()))
@@ -126,13 +124,7 @@ def handle_message(event):
             TextSendMessage(text=greeting_message)
         )
 
-        # 0秒から1800秒（30分）までのランダムな遅延時間を設定
-        delay_seconds = random.randint(0, 1800)
-        
-        # ランダムな時間だけ待機
-        time.sleep(delay_seconds)
-        
-        # ランダムな質問を選んで送信
+        # ランダムな質問を選んで即時に送信
         random_question = pick_random_question()
         line_bot_api.push_message(
             user_id,
@@ -143,13 +135,7 @@ def handle_message(event):
     # OpenAIのAPIを使って応答を生成
     reply_message = get_openai_response(user_id, user_message)
     
-    # 0秒から1800秒（30分）までのランダムな遅延時間を設定
-    delay_seconds = random.randint(0, 1800)
-    
-    # ランダムな時間だけ待機
-    time.sleep(delay_seconds)
-    
-    # ユーザーに応答を送信
+    # ユーザーに応答を即時送信
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply_message)
