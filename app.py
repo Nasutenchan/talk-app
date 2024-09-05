@@ -13,6 +13,10 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
+# 環境変数が設定されていない場合はエラーを出力
+if not all([LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, OPENAI_API_KEY]):
+    raise EnvironmentError("必要な環境変数が設定されていません。LINE_CHANNEL_ACCESS_TOKEN、LINE_CHANNEL_SECRET、OPENAI_API_KEYを確認してください。")
+
 openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
@@ -24,10 +28,13 @@ user_memory = {}
 
 def load_questions_from_file(file_path):
     """テキストファイルから辞書をインポートする関数"""
-    with open(file_path, 'r', encoding='utf-8') as file:
-        data = file.read()
-        questions_dict = ast.literal_eval(data)  # テキストを辞書に変換
-    return questions_dict
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            data = file.read()
+            questions_dict = ast.literal_eval(data)  # テキストを辞書に変換
+        return questions_dict
+    except FileNotFoundError:
+        raise FileNotFoundError(f"質問ファイル {file_path} が見つかりません。")
 
 # 質問辞書のロード
 questions_dict = load_questions_from_file('questions.txt')
@@ -40,20 +47,25 @@ def get_openai_response(user_id, user_message):
     # ユーザーのメッセージをメモリに追加
     user_memory[user_id].append({"role": "user", "content": user_message})
 
-    # OpenAIのAPIリクエストを作成する際にメモリの内容を使用
-    response = openai.ChatCompletion.create(
-        model="gpt-4",  # 最新モデルを使用
-        messages=[
-            {"role": "system", "content": "あなたは落ち着いていて、親切な女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で行ってください。"},
-        ] + user_memory[user_id],  # システムメッセージの後にメモリを追加
-        max_tokens=150
-    )
+    try:
+        # OpenAIのAPIリクエストを作成する際にメモリの内容を使用
+        response = openai.ChatCompletion.create(
+            model="gpt-4",  # 最新モデルを使用
+            messages=[
+                {"role": "system", "content": "あなたは落ち着いていて、親切な女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で行ってください。"},
+            ] + user_memory[user_id],  # システムメッセージの後にメモリを追加
+            max_tokens=150
+        )
 
-    # OpenAIの応答をメモリに追加
-    assistant_message = response.choices[0].message['content'].strip()
-    user_memory[user_id].append({"role": "assistant", "content": assistant_message})
+        # OpenAIの応答をメモリに追加
+        assistant_message = response.choices[0].message['content'].strip()
+        user_memory[user_id].append({"role": "assistant", "content": assistant_message})
+        return assistant_message
 
-    return assistant_message
+    except openai.error.OpenAIError as e:
+        # エラーハンドリング: OpenAI APIの呼び出しが失敗した場合
+        print(f"OpenAI APIリクエストでエラーが発生しました: {e}")
+        return "申し訳ありませんが、応答を生成できませんでした。"
 
 def pick_random_question():
     """q1からq200のランダムな質問を選ぶ"""
@@ -63,7 +75,7 @@ def pick_random_question():
 @app.route("/callback", methods=['POST'])
 def callback():
     # LINE Botからのリクエストを処理
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers.get('X-Line-Signature')
     body = request.get_data(as_text=True)
 
     try:
