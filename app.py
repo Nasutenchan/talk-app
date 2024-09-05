@@ -48,9 +48,9 @@ def get_openai_response(user_id, user_message):
     user_memory[user_id].append({"role": "user", "content": user_message})
 
     try:
-        # OpenAIのAPIリクエストを作成する際にメモリの内容を使用
+        # 利用可能なモデルを指定
         response = openai.ChatCompletion.create(
-            model="gpt-40-mini-2024-07-18",  # 最新モデルを使用
+            model="gpt-3.5-turbo",  # 利用可能なモデル名に変更
             messages=[
                 {"role": "system", "content": "あなたは落ち着いていて、親切な女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で行ってください。"},
             ] + user_memory[user_id],  # システムメッセージの後にメモリを追加
@@ -62,10 +62,28 @@ def get_openai_response(user_id, user_message):
         user_memory[user_id].append({"role": "assistant", "content": assistant_message})
         return assistant_message
 
+    except openai.error.InvalidRequestError as e:
+        print(f"無効なリクエストエラーが発生しました: {e}")
+        return "申し訳ありませんが、無効なリクエストが送信されました。設定を確認してください。"
+
+    except openai.error.AuthenticationError as e:
+        print(f"認証エラーが発生しました: {e}")
+        return "認証に失敗しました。APIキーを確認してください。"
+
+    except openai.error.RateLimitError as e:
+        print(f"レート制限エラーが発生しました: {e}")
+        return "レート制限に達しました。しばらくしてから再度お試しください。"
+
     except openai.error.OpenAIError as e:
-        # エラーハンドリング: OpenAI APIの呼び出しが失敗した場合
+        # その他のOpenAIのエラーをキャッチ
         print(f"OpenAI APIリクエストでエラーが発生しました: {e}")
         return "申し訳ありませんが、応答を生成できませんでした。"
+
+    except Exception as e:
+        # 予期しないエラーをキャッチ
+        print(f"予期しないエラーが発生しました: {e}")
+        return "申し訳ありませんが、エラーが発生しました。"
+
 
 def pick_random_question():
     """q1からq200のランダムな質問を選ぶ"""
