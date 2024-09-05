@@ -51,9 +51,9 @@ def get_openai_response(user_id, user_message):
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",  # 利用可能なモデル名に変更
             messages=[
-                {"role": "system", "content": "あなたは落ち着いていて、親切な女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で行ってください。"},
+                {"role": "system", "content": "あなたは落ち着いていて、親切で、かわいい20代の女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で、丁寧な言葉遣いではなく、ため口で話してください。"},
             ] + user_memory[user_id],  # システムメッセージの後にメモリを追加
-            max_tokens=150
+            max_tokens=25  # 応答の長さを約25文字程度に制限
         )
 
         # OpenAIの応答をメモリに追加
@@ -63,25 +63,23 @@ def get_openai_response(user_id, user_message):
 
     except openai.error.InvalidRequestError as e:
         print(f"無効なリクエストエラーが発生しました: {e}")
-        return "申し訳ありませんが、無効なリクエストが送信されました。設定を確認してください。"
+        return "申し訳ないけど、リクエストに問題があったみたい。もう一回確認してね！"
 
     except openai.error.AuthenticationError as e:
         print(f"認証エラーが発生しました: {e}")
-        return "認証に失敗しました。APIキーを確認してください。"
+        return "認証に失敗しちゃったみたい。APIキーをもう一回確認してみて！"
 
     except openai.error.RateLimitError as e:
         print(f"レート制限エラーが発生しました: {e}")
-        return "レート制限に達しました。しばらくしてから再度お試しください。"
+        return "ごめんね、ちょっとリクエストが多すぎて疲れちゃったみたい。少し待ってからまた試してね！"
 
     except openai.error.OpenAIError as e:
-        # その他のOpenAIのエラーをキャッチ
         print(f"OpenAI APIリクエストでエラーが発生しました: {e}")
-        return "申し訳ありませんが、応答を生成できませんでした。"
+        return "うまく応答できなかったみたい。ごめんね、もう一度試してみて！"
 
     except Exception as e:
-        # 予期しないエラーをキャッチ
         print(f"予期しないエラーが発生しました: {e}")
-        return "申し訳ありませんが、エラーが発生しました。"
+        return "ちょっとエラーが発生しちゃった。もう一回試してみて！"
 
 def pick_random_question():
     """q1からq200のランダムな質問を選ぶ"""
@@ -109,7 +107,7 @@ def handle_message(event):
     # 特定のメッセージに応じた処理
     if user_message == "またね":
         # ChatGPTに会話を終了するメッセージを生成させる
-        reply_message = get_openai_response(user_id, "会話を終了したいです。")
+        reply_message = get_openai_response(user_id, "じゃあ、またね！また話そうね！")
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text=reply_message)
@@ -118,7 +116,7 @@ def handle_message(event):
         return
     elif user_message == "やっほー":
         # ChatGPTに挨拶のメッセージを生成させる
-        greeting_message = get_openai_response(user_id, "挨拶を返してください。")
+        greeting_message = get_openai_response(user_id, "やっほー！元気だった？")
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text=greeting_message)
