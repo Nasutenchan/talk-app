@@ -1,0 +1,10 @@
+# すべてのファイルとディレクトリを無視
+*
+
+# 以下のファイルは無視しない
+!app.py
+!questions.txt
+!requirements.txt
+
+# Gitディレクトリは無視しない
+!.gitignore
