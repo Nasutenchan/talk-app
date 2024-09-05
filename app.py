@@ -4,8 +4,6 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 import openai
 import os
-import random
-import ast  # テキストファイルから辞書をインポートするために使用
 
 # 環境変数からトークンを取得
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
@@ -25,19 +23,6 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 # ユーザーごとのメッセージ履歴を保存するためのメモリ
 user_memory = {}
 
-def load_questions_from_file(file_path):
-    """テキストファイルから辞書をインポートする関数"""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            data = file.read()
-            questions_dict = ast.literal_eval(data)  # テキストを辞書に変換
-        return questions_dict
-    except FileNotFoundError:
-        raise FileNotFoundError(f"質問ファイル {file_path} が見つかりません。")
-
-# 質問辞書のロード
-questions_dict = load_questions_from_file('questions.txt')
-
 def get_openai_response(user_id, user_message):
     """OpenAI APIを使用して応答を生成する（メモリを活用）"""
     if user_id not in user_memory:
@@ -53,7 +38,7 @@ def get_openai_response(user_id, user_message):
             messages=[
                 {"role": "system", "content": "あなたは落ち着いていて、親切で、かわいい20代の女性です。人を褒めるのが得意で、包容力のある女性です。すべての応答は日本語で、丁寧な言葉遣いではなく、ため口で話してください。"},
             ] + user_memory[user_id],  # システムメッセージの後にメモリを追加
-            max_tokens=25  # 応答の長さを約25文字程度に制限
+            max_tokens=50  # 応答の長さを増やして約50トークンに制限
         )
 
         # OpenAIの応答をメモリに追加
@@ -81,11 +66,6 @@ def get_openai_response(user_id, user_message):
         print(f"予期しないエラーが発生しました: {e}")
         return "ちょっとエラーが発生しちゃった。もう一回試してみて！"
 
-def pick_random_question():
-    """q1からq200のランダムな質問を選ぶ"""
-    random_key = random.choice(list(questions_dict.keys()))
-    return questions_dict[random_key]
-
 @app.route("/callback", methods=['POST'])
 def callback():
     # LINE Botからのリクエストを処理
@@ -104,40 +84,25 @@ def handle_message(event):
     user_message = event.message.text
     user_id = event.source.user_id
 
-    # 特定のメッセージに応じた処理
-    if user_message == "またね":
-        # ChatGPTに会話を終了するメッセージを生成させる
-        reply_message = get_openai_response(user_id, "じゃあ、またね！また話そうね！")
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text=reply_message)
-        )
-        user_memory.pop(user_id, None)  # ユーザーのメモリを削除
-        return
-    elif user_message == "やっほー":
-        # ChatGPTに挨拶のメッセージを生成させる
+    # 「やっほー」または「またね」というメッセージに応答する処理
+    if user_message.lower() == "やっほー":
         greeting_message = get_openai_response(user_id, "やっほー！元気だった？")
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text=greeting_message)
         )
-
-        # ランダムな質問を選んで即時に送信
-        random_question = pick_random_question()
-        line_bot_api.push_message(
-            user_id,
-            TextSendMessage(text=random_question)
+    elif user_message.lower() == "またね":
+        farewell_message = get_openai_response(user_id, "じゃあ、またね！また話そうね！")
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text=farewell_message)
         )
-        return
-
-    # OpenAIのAPIを使って応答を生成
-    reply_message = get_openai_response(user_id, user_message)
-    
-    # ユーザーに応答を即時送信
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply_message)
-    )
+    else:
+        # その他のメッセージには特別な処理をしない（オプションで他の応答を追加可能）
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="ごめんね、今はやっほーとまたねだけに応答するよ！")
+        )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
